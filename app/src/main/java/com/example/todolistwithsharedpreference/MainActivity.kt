@@ -2,11 +2,13 @@ package com.example.todolistwithsharedpreference
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Canvas
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistwithsharedpreference.Adaptor.TaskAdaptor
@@ -67,6 +69,25 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "Task title can't be empty", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // Attach ItemTouchHelper for swipe actions
+        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                return false
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.adapterPosition
+                taskAdapter.removeItem(position)  // Perform the swipe-to-delete action
+            }
+        })
+
+        itemTouchHelper.attachToRecyclerView(recyclerView)
+
     }
 
     private fun saveTasks(taskList: MutableList<Task>) {

@@ -62,4 +62,9 @@ class TaskAdaptor(
     override fun getItemCount(): Int {
         return tasks.size
     }
+
+    fun removeItem(position: Int) {
+        tasks.removeAt(position)
+        notifyItemRemoved(position)
+    }
 }
