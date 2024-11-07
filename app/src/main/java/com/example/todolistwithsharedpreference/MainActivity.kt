@@ -1,8 +1,7 @@
-package com.example.todolistwithsharedpreference
+package com.example.todolistwithsharedpreference.MainActivity
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.graphics.Canvas
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -13,7 +12,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.todolistwithsharedpreference.Adaptor.TaskAdaptor
 import com.example.todolistwithsharedpreference.Data.Task
-
+import com.example.todolistwithsharedpreference.R
 
 class MainActivity : AppCompatActivity() {
     private lateinit var taskList: MutableList<Task>
@@ -23,6 +22,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var editText: EditText
     private lateinit var editText2: EditText
     private lateinit var addButton: Button
+
+    private var isEditMode = false // Flag to indicate if we're in edit mode
+    private var editingTaskIndex: Int = -1 // Holds the index of the task being edited
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,11 +40,12 @@ class MainActivity : AppCompatActivity() {
 
         taskAdapter = TaskAdaptor(taskList, object : TaskAdaptor.TaskClickListener {
             override fun onEditClick(position: Int) {
+                // Populate edit texts with task details and switch to edit mode
                 editText.setText(taskList[position].title)
                 editText2.setText(taskList[position].description)
-                taskList.removeAt(position)
-                taskAdapter.notifyItemRemoved(position)
-                saveTasks(taskList)
+                isEditMode = true
+                editingTaskIndex = position
+                addButton.text = "Update" // Change button text to "Update"
             }
 
             override fun onDeleteClick(position: Int) {
@@ -59,10 +62,20 @@ class MainActivity : AppCompatActivity() {
             val taskText = editText.text.toString()
             val taskDescription = editText2.text.toString()
             if (taskText.isNotEmpty() || taskDescription.isNotEmpty()) {
-                val task = Task(taskList.size + 1, taskText, taskDescription, false) // Create a new task with description
-                taskList.add(task)
+                if (isEditMode) {
+                    // Update existing task
+                    taskList[editingTaskIndex].title = taskText
+                    taskList[editingTaskIndex].description = taskDescription
+                    taskAdapter.notifyItemChanged(editingTaskIndex)
+                    isEditMode = false
+                    addButton.text = "Add" // Reset button text to "Add"
+                } else {
+                    // Add new task
+                    val task = Task(taskList.size + 1, taskText, taskDescription, false)
+                    taskList.add(task)
+                    taskAdapter.notifyItemInserted(taskList.size - 1)
+                }
                 saveTasks(taskList)
-                taskAdapter.notifyItemInserted(taskList.size - 1)
                 editText.text.clear()
                 editText2.text.clear()
             } else {
@@ -82,18 +95,18 @@ class MainActivity : AppCompatActivity() {
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                taskAdapter.removeItem(position)  // Perform the swipe-to-delete action
+                taskList.removeAt(position)
+                taskAdapter.notifyItemRemoved(position)
+                saveTasks(taskList)
             }
         })
 
         itemTouchHelper.attachToRecyclerView(recyclerView)
-
     }
 
     private fun saveTasks(taskList: MutableList<Task>) {
         val editor = sharedPreferences.edit()
         val taskSet = HashSet<String>()
-
         taskList.forEach { taskSet.add("${it.title}|${it.description}") }
         editor.putStringSet("tasks", taskSet)
         editor.apply()
